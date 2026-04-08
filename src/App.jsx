@@ -170,7 +170,18 @@ function App() {
   const [nuevosPesos, setNuevosPesos] = useState({})
   const [loading, setLoading] = useState(true)
   const [seccionAbierta, setSeccionAbierta] = useState('Calentamientos')
-  const [ejercicioAbierto, setEjercicioAbierto] = useState(null)
+  const [ejerciciosAbiertos, setEjerciciosAbiertos] = useState([])
+
+  // Función para toggle de ejercicios
+  const toggleEjercicio = (id) => {
+    setEjerciciosAbiertos(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(ejercicioId => ejercicioId !== id)
+      } else {
+        return [...prev, id]
+      }
+    })
+  }
 
   // Función para extraer el ID del video de YouTube
   const extractVideoId = (url) => {
@@ -329,66 +340,104 @@ function App() {
         <div className="space-y-4">
           {/* Sección de Calentamientos */}
           {ejercicios.filter(e => e.dia_rutina === 'Calentamientos').length > 0 && (
-            <button
-              onClick={() => {
-                setSeccionAbierta(seccionAbierta === 'Calentamientos' ? null : 'Calentamientos')
-                setEjercicioAbierto(null)
-              }}
-              className="w-full px-6 py-4 bg-slate-800 hover:bg-slate-750 text-white text-xl font-semibold rounded-lg transition-colors duration-200 flex items-center justify-between"
-            >
-              <span>Calentamientos</span>
-              <span className="text-2xl">{seccionAbierta === 'Calentamientos' ? '−' : '+'}</span>
-            </button>
+            <>
+              <button
+                onClick={() => {
+                  setSeccionAbierta(seccionAbierta === 'Calentamientos' ? null : 'Calentamientos')
+                  setEjerciciosAbiertos([])
+                }}
+                className="w-full px-6 py-4 bg-slate-800 hover:bg-slate-750 text-white text-xl font-semibold rounded-lg transition-colors duration-200 flex items-center justify-between"
+              >
+                <span>Calentamientos</span>
+                <span className="text-2xl">{seccionAbierta === 'Calentamientos' ? '−' : '+'}</span>
+              </button>
+
+              {/* Contenedor con los ejercicios de calentamiento */}
+              {seccionAbierta === 'Calentamientos' && (
+                <div className="mt-4 space-y-2">
+                  {ejercicios.filter(e => e.dia_rutina === 'Calentamientos').map((ejercicio) => (
+                    <div key={ejercicio.id}>
+                      {/* Nivel 2: Nombre del ejercicio (clickeable) */}
+                      <button
+                        onClick={() => toggleEjercicio(ejercicio.id)}
+                        className="w-full px-4 py-3 bg-slate-700/50 hover:bg-slate-700 text-white text-lg rounded-lg transition-colors duration-200 flex items-center justify-between border-b border-slate-600"
+                      >
+                        <span>{ejercicio.nombre}</span>
+                        <span className="text-xl">{ejerciciosAbiertos.includes(ejercicio.id) ? '−' : '+'}</span>
+                      </button>
+
+                      {/* Nivel 3: Detalle del ejercicio (ExerciseCard) */}
+                      {ejerciciosAbiertos.includes(ejercicio.id) && (
+                        <div className="mt-2 animate-fade-in">
+                          <ExerciseCard
+                            ejercicio={ejercicio}
+                            pesos={pesos}
+                            nuevosPesos={nuevosPesos}
+                            handlePesoChange={handlePesoChange}
+                            handleGuardar={handleGuardar}
+                            eliminarPeso={eliminarPeso}
+                            formatearFecha={formatearFecha}
+                            extractVideoId={extractVideoId}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
           {/* Sección de Entrenamiento - Día 1 */}
           {ejercicios.filter(e => e.dia_rutina === 'Día 1').length > 0 && (
-            <button
-              onClick={() => {
-                setSeccionAbierta(seccionAbierta === 'Día 1' ? null : 'Día 1')
-                setEjercicioAbierto(null)
-              }}
-              className="w-full px-6 py-4 bg-slate-800 hover:bg-slate-750 text-white text-xl font-semibold rounded-lg transition-colors duration-200 flex items-center justify-between"
-            >
-              <span>Entrenamiento - Día 1</span>
-              <span className="text-2xl">{seccionAbierta === 'Día 1' ? '−' : '+'}</span>
-            </button>
+            <>
+              <button
+                onClick={() => {
+                  setSeccionAbierta(seccionAbierta === 'Día 1' ? null : 'Día 1')
+                    setEjerciciosAbiertos([])
+                }}
+                className="w-full px-6 py-4 bg-slate-800 hover:bg-slate-750 text-white text-xl font-semibold rounded-lg transition-colors duration-200 flex items-center justify-between"
+              >
+                <span>Entrenamiento - Día 1</span>
+                <span className="text-2xl">{seccionAbierta === 'Día 1' ? '−' : '+'}</span>
+              </button>
+
+              {/* Contenedor con los ejercicios del día 1 */}
+              {seccionAbierta === 'Día 1' && (
+                <div className="mt-4 space-y-2">
+                  {ejercicios.filter(e => e.dia_rutina === 'Día 1').map((ejercicio) => (
+                    <div key={ejercicio.id}>
+                      {/* Nivel 2: Nombre del ejercicio (clickeable) */}
+                      <button
+                        onClick={() => toggleEjercicio(ejercicio.id)}
+                        className="w-full px-4 py-3 bg-slate-700/50 hover:bg-slate-700 text-white text-lg rounded-lg transition-colors duration-200 flex items-center justify-between border-b border-slate-600"
+                      >
+                        <span>{ejercicio.nombre}</span>
+                        <span className="text-xl">{ejerciciosAbiertos.includes(ejercicio.id) ? '−' : '+'}</span>
+                      </button>
+
+                      {/* Nivel 3: Detalle del ejercicio (ExerciseCard) */}
+                      {ejerciciosAbiertos.includes(ejercicio.id) && (
+                        <div className="mt-2 animate-fade-in">
+                          <ExerciseCard
+                            ejercicio={ejercicio}
+                            pesos={pesos}
+                            nuevosPesos={nuevosPesos}
+                            handlePesoChange={handlePesoChange}
+                            handleGuardar={handleGuardar}
+                            eliminarPeso={eliminarPeso}
+                            formatearFecha={formatearFecha}
+                            extractVideoId={extractVideoId}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
-
-        {/* Nivel 2 y 3: Lista de ejercicios y detalles */}
-        {seccionAbierta && (
-          <div className="mt-4 space-y-2">
-            {ejercicios.filter(e => e.dia_rutina === seccionAbierta).map((ejercicio) => (
-              <div key={ejercicio.id}>
-                {/* Nivel 2: Nombre del ejercicio (clickeable) */}
-                <button
-                  onClick={() => setEjercicioAbierto(ejercicioAbierto === ejercicio.id ? null : ejercicio.id)}
-                  className="w-full px-4 py-3 bg-slate-700/50 hover:bg-slate-700 text-white text-lg rounded-lg transition-colors duration-200 flex items-center justify-between border-b border-slate-600"
-                >
-                  <span>{ejercicio.nombre}</span>
-                  <span className="text-xl">{ejercicioAbierto === ejercicio.id ? '−' : '+'}</span>
-                </button>
-
-                {/* Nivel 3: Detalle del ejercicio (ExerciseCard) */}
-                {ejercicioAbierto === ejercicio.id && (
-                  <div className="mt-2 animate-fade-in">
-                    <ExerciseCard
-                      ejercicio={ejercicio}
-                      pesos={pesos}
-                      nuevosPesos={nuevosPesos}
-                      handlePesoChange={handlePesoChange}
-                      handleGuardar={handleGuardar}
-                      eliminarPeso={eliminarPeso}
-                      formatearFecha={formatearFecha}
-                      extractVideoId={extractVideoId}
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
 
         {ejercicios.length === 0 && (
           <div className="text-center py-12">
