@@ -7,6 +7,105 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+// Subcomponente ExerciseCard para manejar el estado del reproductor de cada video
+const ExerciseCard = ({ ejercicio, pesos, nuevosPesos, handlePesoChange, handleGuardar, eliminarPeso, formatearFecha, extractVideoId }) => {
+  const [player, setPlayer] = useState(null)
+
+  const handleVideoClick = () => {
+    if (player) {
+      const playerState = player.getPlayerState()
+      if (playerState === 1) { // 1 significa que está reproduciendo
+        player.pauseVideo()
+      } else {
+        player.playVideo()
+      }
+    }
+  }
+
+  return (
+    <div className="bg-slate-800 rounded-lg p-6 shadow-lg border border-slate-700">
+      {/* Nombre del ejercicio */}
+      <h3 className="text-xl font-semibold text-white mb-4">
+        {ejercicio.nombre}
+      </h3>
+
+      {/* Video embebido de YouTube con control Play/Pause */}
+      <div className="mb-4 relative aspect-video">
+        <YouTube
+          videoId={extractVideoId(ejercicio.video_url)}
+          opts={{
+            playerVars: {
+              autoplay: 0,
+              start: ejercicio.inicio,
+              end: ejercicio.fin,
+              rel: 0,
+              modestbranding: 1,
+            },
+          }}
+          onReady={(e) => setPlayer(e.target)}
+          onEnd={(event) => {
+            event.target.seekTo(ejercicio.inicio)
+            event.target.playVideo()
+          }}
+          className="w-full aspect-video rounded-lg"
+          iframeClassName="w-full h-full rounded-lg"
+        />
+        {/* Escudo transparente con control Play/Pause */}
+        <div
+          className="absolute inset-0 z-10 cursor-pointer"
+          onClick={handleVideoClick}
+        ></div>
+      </div>
+
+      {/* Peso anterior */}
+      <div className="mb-4">
+        <p className="text-gray-300">
+          Peso anterior:{' '}
+          <span className="font-semibold text-white">
+            {pesos[ejercicio.id]
+              ? `${pesos[ejercicio.id].peso} kg (${formatearFecha(pesos[ejercicio.id].fecha)})`
+              : 'Sin registro'}
+          </span>
+          {pesos[ejercicio.id] && (
+            <button
+              onClick={() => eliminarPeso(pesos[ejercicio.id].id)}
+              className="text-red-500 hover:text-red-400 font-bold ml-2"
+              title="Eliminar registro"
+            >
+              X
+            </button>
+          )}
+        </p>
+      </div>
+
+      {/* Input para nuevo peso y botón guardar */}
+      <div className="flex gap-4 items-center">
+        <div className="flex-1">
+          <label htmlFor={`peso-${ejercicio.id}`} className="sr-only">
+            Nuevo peso
+          </label>
+          <input
+            id={`peso-${ejercicio.id}`}
+            type="number"
+            step="0.5"
+            min="0"
+            placeholder="Nuevo peso (kg)"
+            value={nuevosPesos[ejercicio.id] || ''}
+            onChange={(e) => handlePesoChange(ejercicio.id, e.target.value)}
+            className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+        <button
+          onClick={() => handleGuardar(ejercicio.id)}
+          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-800"
+        >
+          Guardar
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function App() {
   const [ejercicios, setEjercicios] = useState([])
   const [pesos, setPesos] = useState({}) // Ahora guarda { id, peso, fecha }
@@ -168,85 +267,17 @@ function App() {
             </h2>
             <div className="space-y-6">
               {ejercicios.filter(e => e.dia_rutina === 'Calentamientos').map((ejercicio) => (
-                <div
+                <ExerciseCard
                   key={ejercicio.id}
-                  className="bg-slate-800 rounded-lg p-6 shadow-lg border border-slate-700"
-                >
-                  {/* Nombre del ejercicio */}
-                  <h3 className="text-xl font-semibold text-white mb-4">
-                    {ejercicio.nombre}
-                  </h3>
-
-                  {/* Video embebido de YouTube */}
-                  <div className="mb-4 relative aspect-video">
-                    <YouTube
-                      videoId={extractVideoId(ejercicio.video_url)}
-                      opts={{
-                        playerVars: {
-                          autoplay: 0,
-                          start: ejercicio.inicio,
-                          end: ejercicio.fin,
-                          rel: 0,
-                          modestbranding: 1,
-                        },
-                      }}
-                      onEnd={(event) => {
-                        event.target.seekTo(ejercicio.inicio)
-                        event.target.playVideo()
-                      }}
-                      className="w-full aspect-video rounded-lg"
-                      iframeClassName="w-full h-full rounded-lg"
-                    />
-                    {/* Bloqueo de clics (Anti-distracciones) */}
-                    <div className="absolute inset-0 z-10"></div>
-                  </div>
-
-                  {/* Peso anterior */}
-                  <div className="mb-4">
-                    <p className="text-gray-300">
-                      Peso anterior:{' '}
-                      <span className="font-semibold text-white">
-                        {pesos[ejercicio.id]
-                          ? `${pesos[ejercicio.id].peso} kg (${formatearFecha(pesos[ejercicio.id].fecha)})`
-                          : 'Sin registro'}
-                      </span>
-                      {pesos[ejercicio.id] && (
-                        <button
-                          onClick={() => eliminarPeso(pesos[ejercicio.id].id)}
-                          className="text-red-500 hover:text-red-400 font-bold ml-2"
-                          title="Eliminar registro"
-                        >
-                          X
-                        </button>
-                      )}
-                    </p>
-                  </div>
-
-                  {/* Input para nuevo peso y botón guardar */}
-                  <div className="flex gap-4 items-center">
-                    <div className="flex-1">
-                      <label htmlFor={`peso-${ejercicio.id}`} className="sr-only">
-                        Nuevo peso
-                      </label>
-                      <input
-                        id={`peso-${ejercicio.id}`}
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        placeholder="Nuevo peso (kg)"
-                        value={nuevosPesos[ejercicio.id] || ''}
-                        onChange={(e) => handlePesoChange(ejercicio.id, e.target.value)}
-                        className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <button
-                      onClick={() => handleGuardar(ejercicio.id)}
-                      className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-800"
-                    >
-                      Guardar
-                    </button>
-                  </div>
-                </div>
+                  ejercicio={ejercicio}
+                  pesos={pesos}
+                  nuevosPesos={nuevosPesos}
+                  handlePesoChange={handlePesoChange}
+                  handleGuardar={handleGuardar}
+                  eliminarPeso={eliminarPeso}
+                  formatearFecha={formatearFecha}
+                  extractVideoId={extractVideoId}
+                />
               ))}
             </div>
           </>
@@ -260,85 +291,17 @@ function App() {
             </h2>
             <div className="space-y-6">
               {ejercicios.filter(e => e.dia_rutina === 'Día 1').map((ejercicio) => (
-                <div
+                <ExerciseCard
                   key={ejercicio.id}
-                  className="bg-slate-800 rounded-lg p-6 shadow-lg border border-slate-700"
-                >
-                  {/* Nombre del ejercicio */}
-                  <h3 className="text-xl font-semibold text-white mb-4">
-                    {ejercicio.nombre}
-                  </h3>
-
-                  {/* Video embebido de YouTube */}
-                  <div className="mb-4 relative aspect-video">
-                    <YouTube
-                      videoId={extractVideoId(ejercicio.video_url)}
-                      opts={{
-                        playerVars: {
-                          autoplay: 0,
-                          start: ejercicio.inicio,
-                          end: ejercicio.fin,
-                          rel: 0,
-                          modestbranding: 1,
-                        },
-                      }}
-                      onEnd={(event) => {
-                        event.target.seekTo(ejercicio.inicio)
-                        event.target.playVideo()
-                      }}
-                      className="w-full aspect-video rounded-lg"
-                      iframeClassName="w-full h-full rounded-lg"
-                    />
-                    {/* Bloqueo de clics (Anti-distracciones) */}
-                    <div className="absolute inset-0 z-10"></div>
-                  </div>
-
-                  {/* Peso anterior */}
-                  <div className="mb-4">
-                    <p className="text-gray-300">
-                      Peso anterior:{' '}
-                      <span className="font-semibold text-white">
-                        {pesos[ejercicio.id]
-                          ? `${pesos[ejercicio.id].peso} kg (${formatearFecha(pesos[ejercicio.id].fecha)})`
-                          : 'Sin registro'}
-                      </span>
-                      {pesos[ejercicio.id] && (
-                        <button
-                          onClick={() => eliminarPeso(pesos[ejercicio.id].id)}
-                          className="text-red-500 hover:text-red-400 font-bold ml-2"
-                          title="Eliminar registro"
-                        >
-                          X
-                        </button>
-                      )}
-                    </p>
-                  </div>
-
-                  {/* Input para nuevo peso y botón guardar */}
-                  <div className="flex gap-4 items-center">
-                    <div className="flex-1">
-                      <label htmlFor={`peso-${ejercicio.id}`} className="sr-only">
-                        Nuevo peso
-                      </label>
-                      <input
-                        id={`peso-${ejercicio.id}`}
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        placeholder="Nuevo peso (kg)"
-                        value={nuevosPesos[ejercicio.id] || ''}
-                        onChange={(e) => handlePesoChange(ejercicio.id, e.target.value)}
-                        className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <button
-                      onClick={() => handleGuardar(ejercicio.id)}
-                      className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-800"
-                    >
-                      Guardar
-                    </button>
-                  </div>
-                </div>
+                  ejercicio={ejercicio}
+                  pesos={pesos}
+                  nuevosPesos={nuevosPesos}
+                  handlePesoChange={handlePesoChange}
+                  handleGuardar={handleGuardar}
+                  eliminarPeso={eliminarPeso}
+                  formatearFecha={formatearFecha}
+                  extractVideoId={extractVideoId}
+                />
               ))}
             </div>
           </>
