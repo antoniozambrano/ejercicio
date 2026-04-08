@@ -9,7 +9,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 function App() {
   const [ejercicios, setEjercicios] = useState([])
-  const [pesos, setPesos] = useState({})
+  const [pesos, setPesos] = useState({}) // Ahora guarda { id, peso, fecha }
   const [nuevosPesos, setNuevosPesos] = useState({})
   const [loading, setLoading] = useState(true)
 
@@ -29,43 +29,22 @@ function App() {
     return `https://www.youtube.com/embed/${videoId}?start=${inicio}&end=${fin}`
   }
 
-  // Cargar ejercicios al montar el componente
+  // Función para formatear la fecha
+  const formatearFecha = (fecha) => {
+    const date = new Date(fecha)
+    const dia = String(date.getDate()).padStart(2, '0')
+    const mes = String(date.getMonth() + 1).padStart(2, '0')
+    const anio = date.getFullYear()
+    return `${dia}/${mes}/${anio}`
+  }
+
+  // Cargar ejercicios al montar del componente
   useEffect(() => {
-    const fetchEjercicios = async () => {
-      try {
-        const { data: ejerciciosData, error: ejerciciosError } = await supabase
-          .from('ejercicios')
-          .select('*')
-          .in('dia_rutina', ['Calentamientos', 'Día 1'])
-          .order('id', { ascending: true })
-
-        if (ejerciciosError) throw ejerciciosError
-
-        setEjercicios(ejerciciosData)
-
-        // Para cada ejercicio, obtener el último peso registrado
-        const pesosData = {}
-        for (const ejercicio of ejerciciosData) {
-          const { data: pesoData, error: pesoError } = await supabase
-            .from('registros_peso')
-            .select('peso')
-            .eq('ejercicio_id', ejercicio.id)
-            .order('fecha', { ascending: false })
-            .limit(1)
-
-          if (!pesoError && pesoData && pesoData.length > 0) {
-            pesosData[ejercicio.id] = pesoData[0].peso
-          }
-        }
-        setPesos(pesosData)
-      } catch (error) {
-        console.error('Error al cargar ejercicios:', error.message)
-      } finally {
-        setLoading(false)
-      }
+    const loadInitialData = async () => {
+      await fetchEjercicios()
+      setLoading(false)
     }
-
-    fetchEjercicios()
+    loadInitialData()
   }, [])
 
   // Manejar cambio en el input de peso
@@ -99,11 +78,8 @@ function App() {
 
       alert('Peso guardado exitosamente')
 
-      // Actualizar el peso anterior en la vista
-      setPesos(prev => ({
-        ...prev,
-        [ejercicioId]: parseFloat(peso)
-      }))
+      // Recargar los datos para obtener el registro actualizado
+      fetchEjercicios()
 
       // Limpiar el input
       setNuevosPesos(prev => ({
@@ -113,6 +89,63 @@ function App() {
     } catch (error) {
       console.error('Error al guardar peso:', error.message)
       alert('Error al guardar el peso')
+    }
+  }
+
+  // Eliminar registro de peso
+  const eliminarPeso = async (registroId) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar este registro de peso?')) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('registros_peso')
+        .delete()
+        .eq('id', registroId)
+
+      if (error) throw error
+
+      alert('Registro eliminado exitosamente')
+
+      // Recargar los datos para obtener el registro anterior
+      fetchEjercicios()
+    } catch (error) {
+      console.error('Error al eliminar peso:', error.message)
+      alert('Error al eliminar el registro')
+    }
+  }
+
+  // Función para recargar ejercicios
+  const fetchEjercicios = async () => {
+    try {
+      const { data: ejerciciosData, error: ejerciciosError } = await supabase
+        .from('ejercicios')
+        .select('*')
+        .in('dia_rutina', ['Calentamientos', 'Día 1'])
+        .order('id', { ascending: true })
+
+      if (ejerciciosError) throw ejerciciosError
+
+      setEjercicios(ejerciciosData)
+
+      // Para cada ejercicio, obtener el último peso registrado
+      const pesosData = {}
+      for (const ejercicio of ejerciciosData) {
+        const { data: pesoData, error: pesoError } = await supabase
+          .from('registros_peso')
+          .select('id, peso, fecha')
+          .eq('ejercicio_id', ejercicio.id)
+          .order('fecha', { ascending: false })
+          .limit(1)
+
+        if (!pesoError && pesoData && pesoData.length > 0) {
+          pesosData[ejercicio.id] = pesoData[0]
+        }
+      }
+      setPesos(pesosData)
+    } catch (error) {
+      console.error('Error al cargar ejercicios:', error.message)
     }
   }
 
@@ -145,7 +178,7 @@ function App() {
                   </h3>
 
                   {/* Video embebido de YouTube */}
-                  <div className="mb-4">
+                  <div className="mb-4 relative aspect-video">
                     <YouTube
                       videoId={extractVideoId(ejercicio.video_url)}
                       opts={{
@@ -164,6 +197,8 @@ function App() {
                       className="w-full aspect-video rounded-lg"
                       iframeClassName="w-full h-full rounded-lg"
                     />
+                    {/* Bloqueo de clics (Anti-distracciones) */}
+                    <div className="absolute inset-0 z-10"></div>
                   </div>
 
                   {/* Peso anterior */}
@@ -171,8 +206,19 @@ function App() {
                     <p className="text-gray-300">
                       Peso anterior:{' '}
                       <span className="font-semibold text-white">
-                        {pesos[ejercicio.id] ? `${pesos[ejercicio.id]} kg` : 'Sin registro'}
+                        {pesos[ejercicio.id]
+                          ? `${pesos[ejercicio.id].peso} kg (${formatearFecha(pesos[ejercicio.id].fecha)})`
+                          : 'Sin registro'}
                       </span>
+                      {pesos[ejercicio.id] && (
+                        <button
+                          onClick={() => eliminarPeso(pesos[ejercicio.id].id)}
+                          className="text-red-500 hover:text-red-400 font-bold ml-2"
+                          title="Eliminar registro"
+                        >
+                          X
+                        </button>
+                      )}
                     </p>
                   </div>
 
@@ -224,7 +270,7 @@ function App() {
                   </h3>
 
                   {/* Video embebido de YouTube */}
-                  <div className="mb-4">
+                  <div className="mb-4 relative aspect-video">
                     <YouTube
                       videoId={extractVideoId(ejercicio.video_url)}
                       opts={{
@@ -243,6 +289,8 @@ function App() {
                       className="w-full aspect-video rounded-lg"
                       iframeClassName="w-full h-full rounded-lg"
                     />
+                    {/* Bloqueo de clics (Anti-distracciones) */}
+                    <div className="absolute inset-0 z-10"></div>
                   </div>
 
                   {/* Peso anterior */}
@@ -250,8 +298,19 @@ function App() {
                     <p className="text-gray-300">
                       Peso anterior:{' '}
                       <span className="font-semibold text-white">
-                        {pesos[ejercicio.id] ? `${pesos[ejercicio.id]} kg` : 'Sin registro'}
+                        {pesos[ejercicio.id]
+                          ? `${pesos[ejercicio.id].peso} kg (${formatearFecha(pesos[ejercicio.id].fecha)})`
+                          : 'Sin registro'}
                       </span>
+                      {pesos[ejercicio.id] && (
+                        <button
+                          onClick={() => eliminarPeso(pesos[ejercicio.id].id)}
+                          className="text-red-500 hover:text-red-400 font-bold ml-2"
+                          title="Eliminar registro"
+                        >
+                          X
+                        </button>
+                      )}
                     </p>
                   </div>
 
