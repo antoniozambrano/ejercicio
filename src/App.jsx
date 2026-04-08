@@ -132,7 +132,7 @@ const ExerciseCard = ({ ejercicio, pesos, nuevosPesos, handlePesoChange, handleG
       </div>
 
       {/* Inputs - Diferenciados por tipo de ejercicio */}
-      {!isCalentamiento ? (
+      {isCalentamiento ? (
         <div className="space-y-4">
           <button
             onClick={() => {
@@ -448,8 +448,9 @@ function App() {
               </button>
 
               {/* Contenedor con los ejercicios de calentamiento */}
-              {seccionesAbiertas.includes('Calentamientos') && (
-                <div className="mt-4 space-y-2 transition-all duration-300 ease-in-out">
+              <div
+                className={`transition-all duration-500 ease-in-out overflow-hidden space-y-2 ${seccionesAbiertas.includes('Calentamientos') ? 'max-h-[5000px] opacity-100 mt-4' : 'max-h-0 opacity-0 mt-0'}`}
+              >
                   {ejercicios.filter(e => e.dia_rutina === 'Calentamientos').map((ejercicio) => (
                     <div key={ejercicio.id}>
                       {/* Nivel 2: Nombre del ejercicio (clickeable) */}
@@ -482,8 +483,7 @@ function App() {
                       )}
                     </div>
                   ))}
-                </div>
-              )}
+              </div>
             </>
           )}
 
@@ -502,8 +502,9 @@ function App() {
               </button>
 
               {/* Contenedor con los ejercicios del día 1 */}
-              {seccionesAbiertas.includes('Día 1') && (
-                <div className="mt-4 space-y-2 transition-all duration-300 ease-in-out">
+              <div
+                className={`transition-all duration-500 ease-in-out overflow-hidden space-y-2 ${seccionesAbiertas.includes('Día 1') ? 'max-h-[5000px] opacity-100 mt-4' : 'max-h-0 opacity-0 mt-0'}`}
+              >
                   {ejercicios.filter(e => e.dia_rutina === 'Día 1').map((ejercicio) => (
                     <div key={ejercicio.id}>
                       {/* Nivel 2: Nombre del ejercicio (clickeable) */}
@@ -533,8 +534,7 @@ function App() {
                       )}
                     </div>
                   ))}
-                </div>
-              )}
+              </div>
             </>
           )}
         </div>
