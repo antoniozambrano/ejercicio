@@ -10,6 +10,8 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey)
 // Subcomponente ExerciseCard para manejar el estado del reproductor de cada video
 const ExerciseCard = ({ ejercicio, pesos, nuevosPesos, handlePesoChange, handleGuardar, eliminarPeso, formatearFecha, extractVideoId }) => {
   const [player, setPlayer] = useState(null)
+  const [numSeries, setNumSeries] = useState(3)
+  const [reps, setReps] = useState({})
 
   const handleVideoClick = () => {
     if (player) {
@@ -20,6 +22,26 @@ const ExerciseCard = ({ ejercicio, pesos, nuevosPesos, handlePesoChange, handleG
         player.playVideo()
       }
     }
+  }
+
+  const handleNumSeriesChange = (value) => {
+    const num = parseInt(value) || 0
+    setNumSeries(num)
+    // Inicializar reps para las nuevas series
+    const newReps = { ...reps }
+    for (let i = 0; i < num; i++) {
+      if (!(i in newReps)) {
+        newReps[i] = ''
+      }
+    }
+    setReps(newReps)
+  }
+
+  const handleRepChange = (index, value) => {
+    setReps(prev => ({
+      ...prev,
+      [index]: value
+    }))
   }
 
   return (
@@ -60,10 +82,10 @@ const ExerciseCard = ({ ejercicio, pesos, nuevosPesos, handlePesoChange, handleG
       {/* Peso anterior */}
       <div className="mb-4">
         <p className="text-gray-300">
-          Peso anterior:{' '}
+          Anterior:{' '}
           <span className="font-semibold text-white">
             {pesos[ejercicio.id]
-              ? `${pesos[ejercicio.id].peso} kg (${formatearFecha(pesos[ejercicio.id].fecha)})`
+              ? `${pesos[ejercicio.id].peso} kg | ${pesos[ejercicio.id].series || 0} series: (${pesos[ejercicio.id].reps || '-'}) | ${formatearFecha(pesos[ejercicio.id].fecha)}`
               : 'Sin registro'}
           </span>
           {pesos[ejercicio.id] && (
@@ -78,26 +100,62 @@ const ExerciseCard = ({ ejercicio, pesos, nuevosPesos, handlePesoChange, handleG
         </p>
       </div>
 
-      {/* Input para nuevo peso y botón guardar */}
-      <div className="flex gap-4 items-center">
-        <div className="flex-1">
-          <label htmlFor={`peso-${ejercicio.id}`} className="sr-only">
-            Nuevo peso
-          </label>
-          <input
-            id={`peso-${ejercicio.id}`}
-            type="number"
-            step="0.5"
-            min="0"
-            placeholder="Nuevo peso (kg)"
-            value={nuevosPesos[ejercicio.id] || ''}
-            onChange={(e) => handlePesoChange(ejercicio.id, e.target.value)}
-            className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+      {/* Input para nuevo peso, series y reps */}
+      <div className="space-y-4">
+        <div className="flex gap-4 items-center">
+          <div className="flex-1">
+            <label htmlFor={`peso-${ejercicio.id}`} className="sr-only">
+              Nuevo peso
+            </label>
+            <input
+              id={`peso-${ejercicio.id}`}
+              type="number"
+              step="0.5"
+              min="0"
+              placeholder="Nuevo peso (kg)"
+              value={nuevosPesos[ejercicio.id] || ''}
+              onChange={(e) => handlePesoChange(ejercicio.id, e.target.value)}
+              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div className="w-20">
+            <label htmlFor={`series-${ejercicio.id}`} className="sr-only">
+              Número de series
+            </label>
+            <input
+              id={`series-${ejercicio.id}`}
+              type="number"
+              min="1"
+              max="10"
+              placeholder="Series"
+              value={numSeries}
+              onChange={(e) => handleNumSeriesChange(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
+            />
+          </div>
         </div>
+        
+        {/* Inputs dinámicos de reps */}
+        {numSeries > 0 && (
+          <div className="flex gap-2 items-center flex-wrap">
+            <span className="text-slate-300 text-sm">Reps:</span>
+            {Array.from({ length: numSeries }, (_, i) => (
+              <input
+                key={i}
+                type="text"
+                inputMode="numeric"
+                placeholder={`${i + 1}`}
+                value={reps[i] || ''}
+                onChange={(e) => handleRepChange(i, e.target.value)}
+                className="w-12 px-2 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-300 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-sm"
+              />
+            ))}
+          </div>
+        )}
+
         <button
-          onClick={() => handleGuardar(ejercicio.id)}
-          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-800"
+          onClick={() => handleGuardar(ejercicio.id, numSeries, reps)}
+          className="w-full px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-800"
         >
           Guardar
         </button>
@@ -155,12 +213,16 @@ function App() {
   }
 
   // Guardar nuevo peso
-  const handleGuardar = async (ejercicioId) => {
+  const handleGuardar = async (ejercicioId, numSeries = 0, reps = {}) => {
     const peso = nuevosPesos[ejercicioId]
     if (!peso || peso <= 0) {
       alert('Por favor, ingresa un peso válido')
       return
     }
+
+    // Concatenar las reps en un string separado por comas
+    const repsArray = Array.from({ length: numSeries }, (_, i) => reps[i] || '').filter(r => r !== '')
+    const repsString = repsArray.join(', ')
 
     try {
       const { error } = await supabase
@@ -169,25 +231,27 @@ function App() {
           {
             ejercicio_id: ejercicioId,
             peso: parseFloat(peso),
+            series: numSeries,
+            reps: repsString,
             fecha: new Date().toISOString()
           }
         ])
 
       if (error) throw error
 
-      alert('Peso guardado exitosamente')
+      alert('Registro guardado exitosamente')
 
       // Recargar los datos para obtener el registro actualizado
       fetchEjercicios()
 
-      // Limpiar el input
+      // Limpiar los inputs
       setNuevosPesos(prev => ({
         ...prev,
         [ejercicioId]: ''
       }))
     } catch (error) {
-      console.error('Error al guardar peso:', error.message)
-      alert('Error al guardar el peso')
+      console.error('Error al guardar registro:', error.message)
+      alert('Error al guardar el registro')
     }
   }
 
@@ -233,7 +297,7 @@ function App() {
       for (const ejercicio of ejerciciosData) {
         const { data: pesoData, error: pesoError } = await supabase
           .from('registros_peso')
-          .select('id, peso, fecha')
+          .select('id, peso, series, reps, fecha')
           .eq('ejercicio_id', ejercicio.id)
           .order('fecha', { ascending: false })
           .limit(1)
