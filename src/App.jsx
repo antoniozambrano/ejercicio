@@ -135,10 +135,7 @@ const ExerciseCard = ({ ejercicio, pesos, nuevosPesos, handlePesoChange, handleG
       {!isCalentamiento ? (
         <div className="space-y-4">
           <button
-            onClick={() => {
-              handleGuardar(ejercicio.id, 0, {})
-              if (onRefresh) onRefresh()
-            }}
+            onClick={() => handleGuardar(ejercicio.id, 0, {}, true)}
             className="w-full px-6 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-800"
           >
             Marcar como Completado
@@ -198,7 +195,7 @@ const ExerciseCard = ({ ejercicio, pesos, nuevosPesos, handlePesoChange, handleG
           )}
 
           <button
-            onClick={() => handleGuardar(ejercicio.id, numSeries, reps)}
+            onClick={() => handleGuardar(ejercicio.id, numSeries, reps, false)}
             className="w-full px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-800"
           >
             Guardar
@@ -272,7 +269,38 @@ function App() {
   }
 
   // Guardar nuevo peso
-  const handleGuardar = async (ejercicioId, numSeries = 0, reps = {}) => {
+  const handleGuardar = async (ejercicioId, numSeries = 0, reps = {}, isCalentamiento = false) => {
+    // Si es calentamiento, guardar directamente sin validación
+    if (isCalentamiento) {
+      try {
+        const { error } = await supabase
+          .from('registros_peso')
+          .insert([
+            {
+              ejercicio_id: ejercicioId,
+              peso: 0,
+              series: 0,
+              reps: '0',
+              fecha: new Date().toISOString()
+            }
+          ])
+
+        if (error) throw error
+
+        alert('Calentamiento completado exitosamente')
+
+        // Recargar los datos para actualizar el estado de completados
+        fetchEjercicios()
+
+        return
+      } catch (error) {
+        console.error('Error al guardar calentamiento:', error.message)
+        alert('Error al guardar el calentamiento')
+        return
+      }
+    }
+
+    // Validación para entrenamiento normal
     const peso = nuevosPesos[ejercicioId]
     if (!peso || peso <= 0) {
       alert('Por favor, ingresa un peso válido')
