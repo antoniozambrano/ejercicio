@@ -90,7 +90,7 @@ const ExerciseCard = ({ ejercicio, pesos, nuevosPesos, handlePesoChange, handleG
         ></div>
       </div>
 
-      {/* Historial - Diferenciado por tipo de ejercicio */}
+      {/* Peso anterior */}
       <div className="mb-4">
         <p className="text-gray-300">
           {isCalentamiento ? (
@@ -132,10 +132,13 @@ const ExerciseCard = ({ ejercicio, pesos, nuevosPesos, handlePesoChange, handleG
       </div>
 
       {/* Inputs - Diferenciados por tipo de ejercicio */}
-      {isCalentamiento ? (
+      {!isCalentamiento ? (
         <div className="space-y-4">
           <button
-            onClick={() => handleGuardar(ejercicio.id, 0, {}, true)}
+            onClick={() => {
+              handleGuardar(ejercicio.id, 0, {}, true)
+              if (onRefresh) onRefresh()
+            }}
             className="w-full px-6 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-800"
           >
             Marcar como Completado
@@ -208,7 +211,7 @@ const ExerciseCard = ({ ejercicio, pesos, nuevosPesos, handlePesoChange, handleG
 
 function App() {
   const [ejercicios, setEjercicios] = useState([])
-  const [pesos, setPesos] = useState({}) // Ahora guarda { id, peso, fecha }
+  const [pesos, setPesos] = useState({})
   const [nuevosPesos, setNuevosPesos] = useState({})
   const [loading, setLoading] = useState(true)
   const [seccionesAbiertas, setSeccionesAbiertas] = useState(['Calentamientos'])
@@ -245,12 +248,6 @@ function App() {
     } catch (e) {
       return url.split('v=')[1]?.split('&')[0]; // fallback
     }
-  }
-
-  // Función para convertir URL de YouTube a formato embebido
-  const getEmbedUrl = (videoUrl, inicio, fin) => {
-    const videoId = extractVideoId(videoUrl)
-    return `https://www.youtube.com/embed/${videoId}?start=${inicio}&end=${fin}`
   }
 
   // Función para formatear la fecha
@@ -407,7 +404,7 @@ function App() {
 
         if (!pesoError && pesoData && pesoData.length > 0) {
           pesosData[ejercicio.id] = pesoData[0]
-          
+
           // Verificar si el registro es de hoy
           const fechaRegistro = new Date(pesoData[0].fecha)
           fechaRegistro.setHours(0, 0, 0, 0)
@@ -441,18 +438,18 @@ function App() {
             <>
               <button
                 onClick={() => {
-                  setSeccionAbierta(seccionAbierta === 'Calentamientos' ? null : 'Calentamientos')
+                  toggleSeccion('Calentamientos')
                   setEjerciciosAbiertos([])
                 }}
                 className="w-full px-6 py-4 bg-slate-800 hover:bg-slate-750 text-white text-xl font-semibold rounded-lg transition-colors duration-200 flex items-center justify-between"
               >
                 <span>Calentamientos</span>
-                <span className="text-2xl">{seccionAbierta === 'Calentamientos' ? '−' : '+'}</span>
+                <span className={`text-2xl transition-transform duration-300 ${seccionesAbiertas.includes('Calentamientos') ? 'rotate-180' : ''}`}>v</span>
               </button>
 
               {/* Contenedor con los ejercicios de calentamiento */}
-              {seccionAbierta === 'Calentamientos' && (
-                <div className="mt-4 space-y-2">
+              {seccionesAbiertas.includes('Calentamientos') && (
+                <div className="mt-4 space-y-2 transition-all duration-300 ease-in-out">
                   {ejercicios.filter(e => e.dia_rutina === 'Calentamientos').map((ejercicio) => (
                     <div key={ejercicio.id}>
                       {/* Nivel 2: Nombre del ejercicio (clickeable) */}
@@ -495,29 +492,26 @@ function App() {
             <>
               <button
                 onClick={() => {
-                  setSeccionAbierta(seccionAbierta === 'Día 1' ? null : 'Día 1')
-                    setEjerciciosAbiertos([])
+                  toggleSeccion('Día 1')
+                  setEjerciciosAbiertos([])
                 }}
                 className="w-full px-6 py-4 bg-slate-800 hover:bg-slate-750 text-white text-xl font-semibold rounded-lg transition-colors duration-200 flex items-center justify-between"
               >
                 <span>Entrenamiento - Día 1</span>
-                <span className="text-2xl">{seccionAbierta === 'Día 1' ? '−' : '+'}</span>
+                <span className={`text-2xl transition-transform duration-300 ${seccionesAbiertas.includes('Día 1') ? 'rotate-180' : ''}`}>v</span>
               </button>
 
               {/* Contenedor con los ejercicios del día 1 */}
-              {seccionAbierta === 'Día 1' && (
-                <div className="mt-4 space-y-2">
+              {seccionesAbiertas.includes('Día 1') && (
+                <div className="mt-4 space-y-2 transition-all duration-300 ease-in-out">
                   {ejercicios.filter(e => e.dia_rutina === 'Día 1').map((ejercicio) => (
                     <div key={ejercicio.id}>
                       {/* Nivel 2: Nombre del ejercicio (clickeable) */}
                       <button
                         onClick={() => toggleEjercicio(ejercicio.id)}
-                        className={`w-full px-4 py-3 ${completadosHoy.includes(ejercicio.id) ? 'bg-emerald-900/40 hover:bg-emerald-900/60' : 'bg-slate-700/50 hover:bg-slate-700'} text-white text-lg rounded-lg transition-colors duration-200 flex items-center justify-between border-b ${completadosHoy.includes(ejercicio.id) ? 'border-emerald-500' : 'border-slate-600'}`}
+                        className="w-full px-4 py-3 bg-slate-700/50 hover:bg-slate-700 text-white text-lg rounded-lg transition-colors duration-200 flex items-center justify-between border-b border-slate-600"
                       >
-                        <span className="flex items-center gap-2">
-                          {completadosHoy.includes(ejercicio.id) && <span className="text-emerald-400">✓</span>}
-                          <span>{ejercicio.nombre}</span>
-                        </span>
+                        <span>{ejercicio.nombre}</span>
                         <span className="text-xl">{ejerciciosAbiertos.includes(ejercicio.id) ? '−' : '+'}</span>
                       </button>
 
