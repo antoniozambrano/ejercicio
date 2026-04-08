@@ -8,10 +8,21 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Subcomponente ExerciseCard para manejar el estado del reproductor de cada video
-const ExerciseCard = ({ ejercicio, pesos, nuevosPesos, handlePesoChange, handleGuardar, eliminarPeso, formatearFecha, extractVideoId }) => {
+const ExerciseCard = ({ ejercicio, pesos, nuevosPesos, handlePesoChange, handleGuardar, eliminarPeso, formatearFecha, extractVideoId, onRefresh }) => {
   const [player, setPlayer] = useState(null)
   const [numSeries, setNumSeries] = useState(3)
   const [reps, setReps] = useState({})
+
+  // Identificación de Calentamientos
+  const isCalentamiento = ejercicio.dia_rutina === 'Calentamientos'
+
+  // Lógica de "Hecho hoy"
+  const registro = pesos[ejercicio.id]
+  const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+  const fechaRegistro = registro ? new Date(registro.fecha) : null
+  fechaRegistro?.setHours(0, 0, 0, 0)
+  const completadoHoy = registro && fechaRegistro && fechaRegistro.getTime() === hoy.getTime()
 
   const handleVideoClick = () => {
     if (player) {
@@ -45,7 +56,7 @@ const ExerciseCard = ({ ejercicio, pesos, nuevosPesos, handlePesoChange, handleG
   }
 
   return (
-    <div className="bg-slate-800 rounded-lg p-6 shadow-lg border border-slate-700">
+    <div className={`bg-slate-800 rounded-lg p-6 shadow-lg border ${completadoHoy ? 'border-emerald-500 bg-emerald-900/20' : 'border-slate-700'}`}>
       {/* Nombre del ejercicio */}
       <h3 className="text-xl font-semibold text-white mb-4">
         {ejercicio.nombre}
@@ -79,87 +90,121 @@ const ExerciseCard = ({ ejercicio, pesos, nuevosPesos, handlePesoChange, handleG
         ></div>
       </div>
 
-      {/* Peso anterior */}
+      {/* Historial - Diferenciado por tipo de ejercicio */}
       <div className="mb-4">
         <p className="text-gray-300">
-          Anterior:{' '}
-          <span className="font-semibold text-white">
-            {pesos[ejercicio.id]
-              ? `${pesos[ejercicio.id].peso} kg | ${pesos[ejercicio.id].series || 0} series: (${pesos[ejercicio.id].reps || '-'}) | ${formatearFecha(pesos[ejercicio.id].fecha)}`
-              : 'Sin registro'}
-          </span>
-          {pesos[ejercicio.id] && (
-            <button
-              onClick={() => eliminarPeso(pesos[ejercicio.id].id)}
-              className="text-red-500 hover:text-red-400 font-bold ml-2"
-              title="Eliminar registro"
-            >
-              X
-            </button>
+          {isCalentamiento ? (
+            <>
+              Última vez:{' '}
+              <span className="font-semibold text-white">
+                {registro ? formatearFecha(registro.fecha) : 'Sin registro'}
+              </span>
+              {registro && (
+                <button
+                  onClick={() => eliminarPeso(registro.id)}
+                  className="text-red-500 hover:text-red-400 font-bold ml-2"
+                  title="Eliminar registro"
+                >
+                  X
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              Anterior:{' '}
+              <span className="font-semibold text-white">
+                {registro
+                  ? `${registro.peso} kg | ${registro.series || 0} series: (${registro.reps || '-'}) | ${formatearFecha(registro.fecha)}`
+                  : 'Sin registro'}
+              </span>
+              {registro && (
+                <button
+                  onClick={() => eliminarPeso(registro.id)}
+                  className="text-red-500 hover:text-red-400 font-bold ml-2"
+                  title="Eliminar registro"
+                >
+                  X
+                </button>
+              )}
+            </>
           )}
         </p>
       </div>
 
-      {/* Input para nuevo peso, series y reps */}
-      <div className="space-y-4">
-        <div className="flex gap-4 items-center">
-          <div className="flex-1">
-            <label htmlFor={`peso-${ejercicio.id}`} className="sr-only">
-              Nuevo peso
-            </label>
-            <input
-              id={`peso-${ejercicio.id}`}
-              type="number"
-              step="0.5"
-              min="0"
-              placeholder="Nuevo peso (kg)"
-              value={nuevosPesos[ejercicio.id] || ''}
-              onChange={(e) => handlePesoChange(ejercicio.id, e.target.value)}
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          <div className="w-20">
-            <label htmlFor={`series-${ejercicio.id}`} className="sr-only">
-              Número de series
-            </label>
-            <input
-              id={`series-${ejercicio.id}`}
-              type="number"
-              min="1"
-              max="10"
-              placeholder="Series"
-              value={numSeries}
-              onChange={(e) => handleNumSeriesChange(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
-            />
-          </div>
+      {/* Inputs - Diferenciados por tipo de ejercicio */}
+      {!isCalentamiento ? (
+        <div className="space-y-4">
+          <button
+            onClick={() => {
+              handleGuardar(ejercicio.id, 0, {})
+              if (onRefresh) onRefresh()
+            }}
+            className="w-full px-6 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-800"
+          >
+            Marcar como Completado
+          </button>
         </div>
-        
-        {/* Inputs dinámicos de reps */}
-        {numSeries > 0 && (
-          <div className="flex gap-2 items-center flex-wrap">
-            <span className="text-slate-300 text-sm">Reps:</span>
-            {Array.from({ length: numSeries }, (_, i) => (
+      ) : (
+        <div className="space-y-4">
+          <div className="flex gap-4 items-center">
+            <div className="flex-1">
+              <label htmlFor={`peso-${ejercicio.id}`} className="sr-only">
+                Nuevo peso
+              </label>
               <input
-                key={i}
-                type="text"
-                inputMode="numeric"
-                placeholder={`${i + 1}`}
-                value={reps[i] || ''}
-                onChange={(e) => handleRepChange(i, e.target.value)}
-                className="w-12 px-2 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-300 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-sm"
+                id={`peso-${ejercicio.id}`}
+                type="number"
+                step="0.5"
+                min="0"
+                placeholder="Nuevo peso (kg)"
+                value={nuevosPesos[ejercicio.id] || ''}
+                onChange={(e) => handlePesoChange(ejercicio.id, e.target.value)}
+                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-            ))}
+            </div>
+            <div className="w-20">
+              <label htmlFor={`series-${ejercicio.id}`} className="sr-only">
+                Número de series
+              </label>
+              <input
+                id={`series-${ejercicio.id}`}
+                type="number"
+                min="1"
+                max="10"
+                placeholder="Series"
+                value={numSeries}
+                onChange={(e) => handleNumSeriesChange(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
+              />
+            </div>
           </div>
-        )}
+          
+          {/* Inputs dinámicos de reps */}
+          {numSeries > 0 && (
+            <div className="flex gap-2 items-center flex-wrap">
+              <span className="text-slate-300 text-sm">Reps:</span>
+              {Array.from({ length: numSeries }, (_, i) => (
+                <input
+                  key={i}
+                  type="text"
+                  inputMode="numeric"
+                  placeholder={`${i + 1}`}
+                  value={reps[i] || ''}
+                  onChange={(e) => handleRepChange(i, e.target.value)}
+                  className="w-12 px-2 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-300 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-sm"
+                />
+              ))}
+            </div>
+          )}
 
-        <button
-          onClick={() => handleGuardar(ejercicio.id, numSeries, reps)}
-          className="w-full px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-800"
-        >
-          Guardar
-        </button>
-      </div>
+          <button
+            onClick={() => handleGuardar(ejercicio.id, numSeries, reps)}
+            className="w-full px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-800"
+          >
+            Guardar
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -378,6 +423,7 @@ function App() {
                             eliminarPeso={eliminarPeso}
                             formatearFecha={formatearFecha}
                             extractVideoId={extractVideoId}
+                            onRefresh={fetchEjercicios}
                           />
                         </div>
                       )}
@@ -428,6 +474,7 @@ function App() {
                             eliminarPeso={eliminarPeso}
                             formatearFecha={formatearFecha}
                             extractVideoId={extractVideoId}
+                            onRefresh={fetchEjercicios}
                           />
                         </div>
                       )}
