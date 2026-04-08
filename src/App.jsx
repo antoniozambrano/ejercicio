@@ -211,9 +211,20 @@ function App() {
   const [pesos, setPesos] = useState({}) // Ahora guarda { id, peso, fecha }
   const [nuevosPesos, setNuevosPesos] = useState({})
   const [loading, setLoading] = useState(true)
-  const [seccionAbierta, setSeccionAbierta] = useState('Calentamientos')
+  const [seccionesAbiertas, setSeccionesAbiertas] = useState(['Calentamientos'])
   const [ejerciciosAbiertos, setEjerciciosAbiertos] = useState([])
   const [completadosHoy, setCompletadosHoy] = useState([])
+
+  // Función para toggle de secciones
+  const toggleSeccion = (nombre) => {
+    setSeccionesAbiertas(prev => {
+      if (prev.includes(nombre)) {
+        return prev.filter(sec => sec !== nombre)
+      } else {
+        return [...prev, nombre]
+      }
+    })
+  }
 
   // Función para toggle de ejercicios
   const toggleEjercicio = (id) => {
