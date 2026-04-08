@@ -132,7 +132,7 @@ const ExerciseCard = ({ ejercicio, pesos, nuevosPesos, handlePesoChange, handleG
       </div>
 
       {/* Inputs - Diferenciados por tipo de ejercicio */}
-      {!isCalentamiento ? (
+      {isCalentamiento ? (
         <div className="space-y-4">
           <button
             onClick={() => handleGuardar(ejercicio.id, 0, {}, true)}
