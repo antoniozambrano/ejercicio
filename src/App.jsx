@@ -216,6 +216,7 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [seccionAbierta, setSeccionAbierta] = useState('Calentamientos')
   const [ejerciciosAbiertos, setEjerciciosAbiertos] = useState([])
+  const [completadosHoy, setCompletadosHoy] = useState([])
 
   // Función para toggle de ejercicios
   const toggleEjercicio = (id) => {
@@ -350,8 +351,13 @@ function App() {
 
       setEjercicios(ejerciciosData)
 
+      // Obtener fecha actual para filtrar registros de hoy
+      const hoy = new Date()
+      hoy.setHours(0, 0, 0, 0)
+
       // Para cada ejercicio, obtener el último peso registrado
       const pesosData = {}
+      const completadosHoyData = []
       for (const ejercicio of ejerciciosData) {
         const { data: pesoData, error: pesoError } = await supabase
           .from('registros_peso')
@@ -362,9 +368,17 @@ function App() {
 
         if (!pesoError && pesoData && pesoData.length > 0) {
           pesosData[ejercicio.id] = pesoData[0]
+          
+          // Verificar si el registro es de hoy
+          const fechaRegistro = new Date(pesoData[0].fecha)
+          fechaRegistro.setHours(0, 0, 0, 0)
+          if (fechaRegistro.getTime() === hoy.getTime()) {
+            completadosHoyData.push(ejercicio.id)
+          }
         }
       }
       setPesos(pesosData)
+      setCompletadosHoy(completadosHoyData)
     } catch (error) {
       console.error('Error al cargar ejercicios:', error.message)
     }
@@ -405,9 +419,12 @@ function App() {
                       {/* Nivel 2: Nombre del ejercicio (clickeable) */}
                       <button
                         onClick={() => toggleEjercicio(ejercicio.id)}
-                        className="w-full px-4 py-3 bg-slate-700/50 hover:bg-slate-700 text-white text-lg rounded-lg transition-colors duration-200 flex items-center justify-between border-b border-slate-600"
+                        className={`w-full px-4 py-3 ${completadosHoy.includes(ejercicio.id) ? 'bg-emerald-900/40 hover:bg-emerald-900/60' : 'bg-slate-700/50 hover:bg-slate-700'} text-white text-lg rounded-lg transition-colors duration-200 flex items-center justify-between border-b ${completadosHoy.includes(ejercicio.id) ? 'border-emerald-500' : 'border-slate-600'}`}
                       >
-                        <span>{ejercicio.nombre}</span>
+                        <span className="flex items-center gap-2">
+                          {completadosHoy.includes(ejercicio.id) && <span className="text-emerald-400">✓</span>}
+                          <span>{ejercicio.nombre}</span>
+                        </span>
                         <span className="text-xl">{ejerciciosAbiertos.includes(ejercicio.id) ? '−' : '+'}</span>
                       </button>
 
@@ -456,9 +473,12 @@ function App() {
                       {/* Nivel 2: Nombre del ejercicio (clickeable) */}
                       <button
                         onClick={() => toggleEjercicio(ejercicio.id)}
-                        className="w-full px-4 py-3 bg-slate-700/50 hover:bg-slate-700 text-white text-lg rounded-lg transition-colors duration-200 flex items-center justify-between border-b border-slate-600"
+                        className={`w-full px-4 py-3 ${completadosHoy.includes(ejercicio.id) ? 'bg-emerald-900/40 hover:bg-emerald-900/60' : 'bg-slate-700/50 hover:bg-slate-700'} text-white text-lg rounded-lg transition-colors duration-200 flex items-center justify-between border-b ${completadosHoy.includes(ejercicio.id) ? 'border-emerald-500' : 'border-slate-600'}`}
                       >
-                        <span>{ejercicio.nombre}</span>
+                        <span className="flex items-center gap-2">
+                          {completadosHoy.includes(ejercicio.id) && <span className="text-emerald-400">✓</span>}
+                          <span>{ejercicio.nombre}</span>
+                        </span>
                         <span className="text-xl">{ejerciciosAbiertos.includes(ejercicio.id) ? '−' : '+'}</span>
                       </button>
 
