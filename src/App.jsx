@@ -386,7 +386,6 @@ function App() {
       const { data: ejerciciosData, error: ejerciciosError } = await supabase
         .from('ejercicios')
         .select('*')
-        .in('dia_rutina', ['Calentamientos', 'Día 1'])
         .order('id', { ascending: true })
 
       if (ejerciciosError) throw ejerciciosError
