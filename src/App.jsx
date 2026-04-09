@@ -14,7 +14,7 @@ const ExerciseCard = ({ ejercicio, pesos, nuevosPesos, handlePesoChange, handleG
   const [reps, setReps] = useState({})
 
   // Identificación de Calentamientos
-  const isCalentamiento = ejercicio.dia_rutina === 'Calentamientos'
+  const isCalentamiento = ejercicio.dia_rutina.includes('Calentamiento')
 
   // Lógica de "Hecho hoy"
   const registro = pesos[ejercicio.id]
@@ -217,9 +217,12 @@ function App() {
   const [pesos, setPesos] = useState({})
   const [nuevosPesos, setNuevosPesos] = useState({})
   const [loading, setLoading] = useState(true)
-  const [seccionesAbiertas, setSeccionesAbiertas] = useState(['Calentamientos'])
+  const [seccionesAbiertas, setSeccionesAbiertas] = useState([])
   const [ejerciciosAbiertos, setEjerciciosAbiertos] = useState([])
   const [completadosHoy, setCompletadosHoy] = useState([])
+  
+  // Obtener secciones únicas de los ejercicios
+  const seccionesUnicas = [...new Set(ejercicios.map(e => e.dia_rutina))]
 
   // Función para toggle de secciones
   const toggleSeccion = (nombre) => {
@@ -436,113 +439,58 @@ function App() {
       <div className="max-w-4xl mx-auto">
         {/* Nivel 1: Secciones (Acordeón) */}
         <div className="space-y-4">
-          {/* Sección de Calentamientos */}
-          {ejercicios.filter(e => e.dia_rutina === 'Calentamientos').length > 0 && (
-            <>
+          {seccionesUnicas.map((seccion) => (
+            <div key={seccion}>
               <button
                 onClick={() => {
-                  toggleSeccion('Calentamientos')
+                  toggleSeccion(seccion)
                   setEjerciciosAbiertos([])
                 }}
                 className="w-full px-6 py-4 bg-slate-800 hover:bg-slate-750 text-white text-xl font-semibold rounded-lg transition-colors duration-200 flex items-center justify-between"
               >
-                <span>Calentamientos</span>
-                <span className={`text-2xl transition-transform duration-300 ${seccionesAbiertas.includes('Calentamientos') ? 'rotate-180' : ''}`}>v</span>
+                <span>{seccion}</span>
+                <span className={`text-2xl transition-transform duration-300 ${seccionesAbiertas.includes(seccion) ? 'rotate-180' : ''}`}>v</span>
               </button>
 
-              {/* Contenedor con los ejercicios de calentamiento */}
+              {/* Contenedor con los ejercicios de la sección */}
               <div
-                className={`transition-all duration-500 ease-in-out overflow-hidden space-y-2 ${seccionesAbiertas.includes('Calentamientos') ? 'max-h-[5000px] opacity-100 mt-4' : 'max-h-0 opacity-0 mt-0'}`}
+                className={`transition-all duration-500 ease-in-out overflow-hidden space-y-2 ${seccionesAbiertas.includes(seccion) ? 'max-h-[5000px] opacity-100 mt-4' : 'max-h-0 opacity-0 mt-0'}`}
               >
-                  {ejercicios.filter(e => e.dia_rutina === 'Calentamientos').map((ejercicio) => (
-                    <div key={ejercicio.id}>
-                      {/* Nivel 2: Nombre del ejercicio (clickeable) */}
-                      <button
-                        onClick={() => toggleEjercicio(ejercicio.id)}
-                        className={`w-full px-4 py-3 ${completadosHoy.includes(ejercicio.id) ? 'bg-emerald-900/40 hover:bg-emerald-900/60' : 'bg-slate-700/50 hover:bg-slate-700'} text-white text-lg rounded-lg transition-colors duration-200 flex items-center justify-between border-b ${completadosHoy.includes(ejercicio.id) ? 'border-emerald-500' : 'border-slate-600'}`}
-                      >
-                        <span className="flex items-center gap-2">
-                          {completadosHoy.includes(ejercicio.id) && <span className="text-emerald-400">✓</span>}
-                          <span>{ejercicio.nombre}</span>
-                        </span>
-                        <span className="text-xl">{ejerciciosAbiertos.includes(ejercicio.id) ? '−' : '+'}</span>
-                      </button>
+                {ejercicios.filter(e => e.dia_rutina === seccion).map((ejercicio) => (
+                  <div key={ejercicio.id}>
+                    {/* Nivel 2: Nombre del ejercicio (clickeable) */}
+                    <button
+                      onClick={() => toggleEjercicio(ejercicio.id)}
+                      className={`w-full px-4 py-3 ${completadosHoy.includes(ejercicio.id) ? 'bg-emerald-900/40 hover:bg-emerald-900/60' : 'bg-slate-700/50 hover:bg-slate-700'} text-white text-lg rounded-lg transition-colors duration-200 flex items-center justify-between border-b ${completadosHoy.includes(ejercicio.id) ? 'border-emerald-500' : 'border-slate-600'}`}
+                    >
+                      <span className="flex items-center gap-2">
+                        {completadosHoy.includes(ejercicio.id) && <span className="text-emerald-400">✓</span>}
+                        <span>{ejercicio.nombre}</span>
+                      </span>
+                      <span className="text-xl">{ejerciciosAbiertos.includes(ejercicio.id) ? '−' : '+'}</span>
+                    </button>
 
-                      {/* Nivel 3: Detalle del ejercicio (ExerciseCard) */}
-                      {ejerciciosAbiertos.includes(ejercicio.id) && (
-                        <div className="mt-2 animate-fade-in">
-                          <ExerciseCard
-                            ejercicio={ejercicio}
-                            pesos={pesos}
-                            nuevosPesos={nuevosPesos}
-                            handlePesoChange={handlePesoChange}
-                            handleGuardar={handleGuardar}
-                            eliminarPeso={eliminarPeso}
-                            formatearFecha={formatearFecha}
-                            extractVideoId={extractVideoId}
-                            onRefresh={fetchEjercicios}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    {/* Nivel 3: Detalle del ejercicio (ExerciseCard) */}
+                    {ejerciciosAbiertos.includes(ejercicio.id) && (
+                      <div className="mt-2 animate-fade-in">
+                        <ExerciseCard
+                          ejercicio={ejercicio}
+                          pesos={pesos}
+                          nuevosPesos={nuevosPesos}
+                          handlePesoChange={handlePesoChange}
+                          handleGuardar={handleGuardar}
+                          eliminarPeso={eliminarPeso}
+                          formatearFecha={formatearFecha}
+                          extractVideoId={extractVideoId}
+                          onRefresh={fetchEjercicios}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-            </>
-          )}
-
-          {/* Sección de Entrenamiento - Día 1 */}
-          {ejercicios.filter(e => e.dia_rutina === 'Día 1').length > 0 && (
-            <>
-              <button
-                onClick={() => {
-                  toggleSeccion('Día 1')
-                  setEjerciciosAbiertos([])
-                }}
-                className="w-full px-6 py-4 bg-slate-800 hover:bg-slate-750 text-white text-xl font-semibold rounded-lg transition-colors duration-200 flex items-center justify-between"
-              >
-                <span>Entrenamiento - Día 1</span>
-                <span className={`text-2xl transition-transform duration-300 ${seccionesAbiertas.includes('Día 1') ? 'rotate-180' : ''}`}>v</span>
-              </button>
-
-              {/* Contenedor con los ejercicios del día 1 */}
-              <div
-                className={`transition-all duration-500 ease-in-out overflow-hidden space-y-2 ${seccionesAbiertas.includes('Día 1') ? 'max-h-[5000px] opacity-100 mt-4' : 'max-h-0 opacity-0 mt-0'}`}
-              >
-                  {ejercicios.filter(e => e.dia_rutina === 'Día 1').map((ejercicio) => (
-                    <div key={ejercicio.id}>
-                      {/* Nivel 2: Nombre del ejercicio (clickeable) */}
-                      <button
-                        onClick={() => toggleEjercicio(ejercicio.id)}
-                        className={`w-full px-4 py-3 ${completadosHoy.includes(ejercicio.id) ? 'bg-emerald-900/40 hover:bg-emerald-900/60' : 'bg-slate-700/50 hover:bg-slate-700'} text-white text-lg rounded-lg transition-colors duration-200 flex items-center justify-between border-b ${completadosHoy.includes(ejercicio.id) ? 'border-emerald-500' : 'border-slate-600'}`}
-                      >
-                        <span className="flex items-center gap-2">
-                          {completadosHoy.includes(ejercicio.id) && <span className="text-emerald-400">✓</span>}
-                          <span>{ejercicio.nombre}</span>
-                        </span>
-                        <span className="text-xl">{ejerciciosAbiertos.includes(ejercicio.id) ? '−' : '+'}</span>
-                      </button>
-
-                      {/* Nivel 3: Detalle del ejercicio (ExerciseCard) */}
-                      {ejerciciosAbiertos.includes(ejercicio.id) && (
-                        <div className="mt-2 animate-fade-in">
-                          <ExerciseCard
-                            ejercicio={ejercicio}
-                            pesos={pesos}
-                            nuevosPesos={nuevosPesos}
-                            handlePesoChange={handlePesoChange}
-                            handleGuardar={handleGuardar}
-                            eliminarPeso={eliminarPeso}
-                            formatearFecha={formatearFecha}
-                            extractVideoId={extractVideoId}
-                            onRefresh={fetchEjercicios}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-              </div>
-            </>
-          )}
+            </div>
+          ))}
         </div>
 
         {ejercicios.length === 0 && (
