@@ -223,6 +223,19 @@ function App() {
   
   // Obtener secciones únicas de los ejercicios
   const seccionesUnicas = [...new Set(ejercicios.map(e => e.dia_rutina))]
+  
+  // Ordenar secciones: calentamientos primero, luego orden alfabético
+  seccionesUnicas.sort((a, b) => {
+    const aCal = a.toLowerCase().includes('calentamiento');
+    const bCal = b.toLowerCase().includes('calentamiento');
+    
+    // Si 'a' es calentamiento y 'b' no, 'a' va primero
+    if (aCal && !bCal) return -1;
+    // Si 'b' es calentamiento y 'a' no, 'b' va primero
+    if (!aCal && bCal) return 1;
+    // Si ambos son lo mismo (ambos calentamientos o ambos días de entreno), orden alfabético
+    return a.localeCompare(b);
+  });
 
   // Función para toggle de secciones
   const toggleSeccion = (nombre) => {
