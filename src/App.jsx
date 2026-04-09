@@ -198,7 +198,10 @@ const ExerciseCard = ({ ejercicio, pesos, nuevosPesos, handlePesoChange, handleG
           )}
 
           <button
-            onClick={() => handleGuardar(ejercicio.id, numSeries, reps, false)}
+            onClick={() => {
+              handleGuardar(ejercicio.id, numSeries, reps, false)
+              if (onRefresh) onRefresh()
+            }}
             className="w-full px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-800"
           >
             Guardar
@@ -510,9 +513,12 @@ function App() {
                       {/* Nivel 2: Nombre del ejercicio (clickeable) */}
                       <button
                         onClick={() => toggleEjercicio(ejercicio.id)}
-                        className="w-full px-4 py-3 bg-slate-700/50 hover:bg-slate-700 text-white text-lg rounded-lg transition-colors duration-200 flex items-center justify-between border-b border-slate-600"
+                        className={`w-full px-4 py-3 ${completadosHoy.includes(ejercicio.id) ? 'bg-emerald-900/40 hover:bg-emerald-900/60' : 'bg-slate-700/50 hover:bg-slate-700'} text-white text-lg rounded-lg transition-colors duration-200 flex items-center justify-between border-b ${completadosHoy.includes(ejercicio.id) ? 'border-emerald-500' : 'border-slate-600'}`}
                       >
-                        <span>{ejercicio.nombre}</span>
+                        <span className="flex items-center gap-2">
+                          {completadosHoy.includes(ejercicio.id) && <span className="text-emerald-400">✓</span>}
+                          <span>{ejercicio.nombre}</span>
+                        </span>
                         <span className="text-xl">{ejerciciosAbiertos.includes(ejercicio.id) ? '−' : '+'}</span>
                       </button>
 
