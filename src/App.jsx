@@ -14,7 +14,7 @@ const ExerciseCard = ({ ejercicio, pesos, nuevosPesos, handlePesoChange, handleG
   const [reps, setReps] = useState({})
 
   // Identificación de Calentamientos
-  const isCalentamiento = ejercicio.dia_rutina.includes('Calentamiento')
+  const isCalentamiento = ejercicio.dia_rutina.toLowerCase().includes('calentamiento')
 
   // Lógica de "Hecho hoy"
   const registro = pesos[ejercicio.id]
